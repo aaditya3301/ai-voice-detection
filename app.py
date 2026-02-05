@@ -11,7 +11,7 @@ import torch.nn as nn
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 from pathlib import Path
 import os
-import gdown
+import requests
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -74,9 +74,29 @@ async def load_model():
         
         try:
             if GOOGLE_DRIVE_FILE_ID != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE":
-                url = f"https://drive.google.com/uc?id={GOOGLE_DRIVE_FILE_ID}"
-                gdown.download(url, MODEL_PATH, quiet=False)
-                print("✅ Model downloaded successfully!")
+                # Use direct download URL with confirmation bypass
+                url = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}&confirm=t"
+                
+                print(f"   Downloading from: {url}")
+                response = requests.get(url, stream=True)
+                
+                # Handle large file download confirmation
+                if response.status_code == 200:
+                    total_size = int(response.headers.get('content-length', 0))
+                    print(f"   File size: {total_size / (1024*1024):.1f} MB")
+                    
+                    with open(MODEL_PATH, 'wb') as f:
+                        downloaded = 0
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                if downloaded % (50 * 1024 * 1024) == 0:  # Print every 50MB
+                                    print(f"   Downloaded: {downloaded / (1024*1024):.1f} MB")
+                    
+                    print("✅ Model downloaded successfully!")
+                else:
+                    print(f"❌ Download failed with status code: {response.status_code}")
             else:
                 print("⚠️  Google Drive File ID not set. Please update GOOGLE_DRIVE_FILE_ID in app.py")
         except Exception as e:

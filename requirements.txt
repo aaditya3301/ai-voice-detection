@@ -26,5 +26,4 @@ edge-tts==7.2.7
 
 # Deployment
 gunicorn==23.0.0
-gdown==4.7.1
 requests>=2.31.0
