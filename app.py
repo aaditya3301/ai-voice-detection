@@ -74,27 +74,42 @@ async def load_model():
         
         try:
             if GOOGLE_DRIVE_FILE_ID != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE":
-                # Use direct download URL with confirmation bypass
-                url = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}&confirm=t"
+                # Handle large file download from Google Drive
+                session = requests.Session()
+                url = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}"
                 
-                print(f"   Downloading from: {url}")
-                response = requests.get(url, stream=True)
+                print(f"   Downloading from Google Drive...")
+                response = session.get(url, stream=True)
                 
-                # Handle large file download confirmation
+                # Check for virus scan warning and get confirmation token
+                token = None
+                for key, value in response.cookies.items():
+                    if key.startswith('download_warning'):
+                        token = value
+                        break
+                
+                # If there's a confirmation token, make another request with it
+                if token:
+                    params = {'id': GOOGLE_DRIVE_FILE_ID, 'confirm': token}
+                    response = session.get(url, params=params, stream=True)
+                
+                # Download the file
                 if response.status_code == 200:
                     total_size = int(response.headers.get('content-length', 0))
-                    print(f"   File size: {total_size / (1024*1024):.1f} MB")
+                    if total_size > 0:
+                        print(f"   File size: {total_size / (1024*1024):.1f} MB")
                     
                     with open(MODEL_PATH, 'wb') as f:
                         downloaded = 0
-                        for chunk in response.iter_content(chunk_size=8192):
+                        for chunk in response.iter_content(chunk_size=32768):
                             if chunk:
                                 f.write(chunk)
                                 downloaded += len(chunk)
-                                if downloaded % (50 * 1024 * 1024) == 0:  # Print every 50MB
+                                if downloaded % (100 * 1024 * 1024) == 0:  # Print every 100MB
                                     print(f"   Downloaded: {downloaded / (1024*1024):.1f} MB")
                     
-                    print("✅ Model downloaded successfully!")
+                    final_size = os.path.getsize(MODEL_PATH)
+                    print(f"✅ Model downloaded successfully! ({final_size / (1024*1024):.1f} MB)")
                 else:
                     print(f"❌ Download failed with status code: {response.status_code}")
             else:
@@ -109,7 +124,7 @@ async def load_model():
     
     # Load trained weights
     if Path(MODEL_PATH).exists():
-        checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+        checkpoint = torch.load(MODEL_PATH, map_location=DEVICE, weights_only=False)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
         print(f"✅ Model loaded successfully from {MODEL_PATH}")
