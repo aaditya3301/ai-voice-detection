@@ -1,3 +1,12 @@
+---
+title: AI Voice Detection
+emoji: 🎤
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # 🎙️ AI Voice Detection API
 
 Real-time detection of AI-generated vs human voices using wav2vec2 transfer learning. Supports 5 languages: English, Tamil, Hindi, Malayalam, Telugu.
