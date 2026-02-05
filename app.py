@@ -104,9 +104,9 @@ async def load_model():
 
 # Request model (matching hackathon requirements)
 class VoiceRequest(BaseModel):
-    Language: str = Field(..., description="Language code (en, hi, ta, ml, te)")
-    Audio_Format: str = Field(..., alias="Audio Format", description="Audio format (mp3, wav, etc.)")
-    Audio_Base64_Format: str = Field(..., alias="Audio Base64 Format", description="Base64-encoded audio")
+    language: str = Field(..., alias="Language", description="Language code (en, hi, ta, ml, te)")
+    audioFormat: str = Field(..., alias="Audio Format", description="Audio format (mp3, wav, etc.)")
+    audioBase64: str = Field(..., alias="Audio Base64 Format", description="Base64-encoded audio")
     
     class Config:
         populate_by_name = True  # Allow both field name and alias
@@ -235,7 +235,7 @@ async def detect_voice(request: VoiceRequest):
     """
     try:
         # Step 1: Decode audio
-        audio, sr = decode_audio(request.Audio_Base64_Format)
+        audio, sr = decode_audio(request.audioBase64)
         
         # Validate audio length (at least 1 second)
         if len(audio) < sr:
