@@ -21,8 +21,6 @@ app = FastAPI(
 )
 
 # Configuration
-# NOTE: This is YOUR API key - set it to any secure random string (e.g., "sk_live_abc123xyz789")
-# This is what clients will use to authenticate with YOUR API
 VALID_API_KEY = "voice_api_5f4090eeb14e57977536228b1130da36b158fe8e"  # Change this to a secure random string
 MODEL_PATH = "models/voice_detector_best.pth"
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
