@@ -29,10 +29,9 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SAMPLE_RATE = 16000
 MAX_DURATION = 10  # seconds
 
-# Google Drive model download (REPLACE WITH YOUR FILE ID)
-# Upload your model to Google Drive, get shareable link, extract the FILE_ID
-# Example: https://drive.google.com/file/d/1abc123xyz/view -> FILE_ID = 1abc123xyz
-GOOGLE_DRIVE_FILE_ID = "1J733egg7W_UwV3wfi_F0YvsBOAiojgjX"  # Extracted from your Google Drive link
+# Hugging Face model repository
+HF_MODEL_REPO = "aadityas3301/ai-voice-detector-model"
+HF_MODEL_FILE = "voice_detector_best.pth"
 
 # Model Architecture (same as training)
 class VoiceClassifier(nn.Module):
@@ -67,53 +66,23 @@ async def load_model():
     """Load model when the API starts (fixes Windows multiprocessing issue)"""
     global processor, model
     
-    # Download model from Google Drive if not present
+    # Download model from Hugging Face if not present
     if not Path(MODEL_PATH).exists():
-        print("📥 Model not found locally. Downloading from Google Drive...")
+        print("📥 Model not found locally. Downloading from Hugging Face...")
         os.makedirs("models", exist_ok=True)
         
         try:
-            if GOOGLE_DRIVE_FILE_ID != "YOUR_GOOGLE_DRIVE_FILE_ID_HERE":
-                # Handle large file download from Google Drive
-                session = requests.Session()
-                url = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}"
-                
-                print(f"   Downloading from Google Drive...")
-                response = session.get(url, stream=True)
-                
-                # Check for virus scan warning and get confirmation token
-                token = None
-                for key, value in response.cookies.items():
-                    if key.startswith('download_warning'):
-                        token = value
-                        break
-                
-                # If there's a confirmation token, make another request with it
-                if token:
-                    params = {'id': GOOGLE_DRIVE_FILE_ID, 'confirm': token}
-                    response = session.get(url, params=params, stream=True)
-                
-                # Download the file
-                if response.status_code == 200:
-                    total_size = int(response.headers.get('content-length', 0))
-                    if total_size > 0:
-                        print(f"   File size: {total_size / (1024*1024):.1f} MB")
-                    
-                    with open(MODEL_PATH, 'wb') as f:
-                        downloaded = 0
-                        for chunk in response.iter_content(chunk_size=32768):
-                            if chunk:
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                if downloaded % (100 * 1024 * 1024) == 0:  # Print every 100MB
-                                    print(f"   Downloaded: {downloaded / (1024*1024):.1f} MB")
-                    
-                    final_size = os.path.getsize(MODEL_PATH)
-                    print(f"✅ Model downloaded successfully! ({final_size / (1024*1024):.1f} MB)")
-                else:
-                    print(f"❌ Download failed with status code: {response.status_code}")
-            else:
-                print("⚠️  Google Drive File ID not set. Please update GOOGLE_DRIVE_FILE_ID in app.py")
+            from huggingface_hub import hf_hub_download
+            
+            print(f"   Downloading from: {HF_MODEL_REPO}")
+            downloaded_path = hf_hub_download(
+                repo_id=HF_MODEL_REPO,
+                filename=HF_MODEL_FILE,
+                local_dir="models",
+                local_dir_use_symlinks=False
+            )
+            print(f"✅ Model downloaded successfully to {downloaded_path}")
+            
         except Exception as e:
             print(f"❌ Failed to download model: {e}")
             print("   API will run without model predictions")
